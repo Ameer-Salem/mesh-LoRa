@@ -2,6 +2,8 @@
 #include <RadioLib.h>
 #include "BLE.h"
 
+static unsigned long lastDiscoverySend = 0;
+
 void setFlag(void)
 {
     operationDone = true;
@@ -39,9 +41,19 @@ void loop()
             receive();
         }
     }
-    else if(!outgoingQueue.empty())
+    else if (!outgoingQueue.empty())
     {
         sendPacket();
-        
+    }
+    if (!ingoingQueue.empty())
+    {
+        notifyBLE();
+    }
+
+    unsigned long now = millis();
+    if (now - lastDiscoverySend >= 100e3)
+    {
+        sendDiscoveryPacket();
+        lastDiscoverySend = now;
     }
 }

@@ -4,7 +4,6 @@
 // ===== BLE_UUIDs =====
 static const char* SERVICE_UUID =               "ffffffff-ffff-ffff-ffff-ffffffffffff";
 static const char* CHARACTERISTIC_UUID_notify = "ffffffff-ffff-ffff-ffff-fffffffffff0";
-static const char* CHARACTERISTIC_UUID_read =   "ffffffff-ffff-ffff-ffff-ffffffffff00";
 static const char* CHARACTERISTIC_UUID_write =  "ffffffff-ffff-ffff-ffff-fffffffff000";
 
 // ===== Log Tags =====
@@ -18,3 +17,4 @@ extern uint32_t NODE_ID;
 static constexpr int ACK_TYPE = 0x00;
 static constexpr int DISCOVERY_TYPE = 0x01;
 static constexpr int TEXT_TYPE = 0x02;
+static constexpr int NEIGHBORS_TYPE = 0x03;

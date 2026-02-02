@@ -15,7 +15,7 @@ extern  String bleMessage;
 extern  bool hasNewMessage;
 
 void bleSetup();
-void notifyBLE(std::vector<uint8_t> buffer);
+void notifyBLE();
 class RXCallback : public BLECharacteristicCallbacks
 {
 public:

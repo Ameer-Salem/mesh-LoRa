@@ -8,13 +8,14 @@ BLEServer *pServer;
 BLEService *pService;
 BLECharacteristic *notifyChar;
 BLECharacteristic *writeChar;
-BLECharacteristic *readChar;
-
+BLECharacteristic *neighborChar;
+uint16_t negotiatedMTU = 247;
 
 uint32_t NODE_ID;
 
-void bleSetup(){
-    uint8_t  mac[6];
+void bleSetup()
+{
+    uint8_t mac[6];
     esp_read_mac(mac, ESP_MAC_BT);
     NODE_ID = (mac[2] << 24) | (mac[3] << 16) | (mac[4] << 8) | mac[5];
 
@@ -22,13 +23,13 @@ void bleSetup(){
 
     BLEDevice::init(String(NODE_ID).c_str());
     pServer = BLEDevice::createServer();
+    BLEDevice::setMTU(512);
     pService = pServer->createService(SERVICE_UUID);
-
 
     notifyChar = pService->createCharacteristic(CHARACTERISTIC_UUID_notify, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
     writeChar = pService->createCharacteristic(CHARACTERISTIC_UUID_write, BLECharacteristic::PROPERTY_WRITE);
 
-    notifyChar ->addDescriptor(new BLE2902());
+    notifyChar->addDescriptor(new BLE2902());
     writeChar->setCallbacks(new RXCallback());
     pServer->setCallbacks(new MyServerCallbacks());
 
@@ -41,9 +42,15 @@ void bleSetup(){
 
 void MyServerCallbacks::onConnect(BLEServer *pServer)
 {
+    BLEDevice::setMTU(negotiatedMTU);
     sLog(BLE_TAG, "Client connected");
+    negotiatedMTU = pServer->getPeerMTU(pServer->getConnId());
+    Serial.print("Negotiated MTU: ");
+    Serial.println(negotiatedMTU);
     bleMessage = "";
     hasNewMessage = false;
+    operationDone = false;
+    transmitFlag = false;
 };
 void MyServerCallbacks::onDisconnect(BLEServer *pServer)
 {
@@ -51,9 +58,35 @@ void MyServerCallbacks::onDisconnect(BLEServer *pServer)
     advertising->start();
 };
 
-void RXCallback::onWrite(BLECharacteristic *characteristic) {
-
-}
-void notifyBLE(std::vector<uint8_t> buffer)
+void RXCallback::onWrite(BLECharacteristic *characteristic)
 {
+    uint8_t *pValue = characteristic->getData();
+    int len = characteristic->getLength();
+
+    if (len > 0)
+    {
+        if (pValue[0] == NEIGHBORS_TYPE)
+        {
+            sLog(BLE_TAG, "Transmiting neighbors packet...");
+
+            ingoingQueue.push_back(serializeNeighbors(neighbors));
+        }
+        else if (pValue[0] == TEXT_TYPE)
+        {
+            sLog(BLE_TAG, "Transmiting data packet...");
+            outgoingQueue.push_back(vector<uint8_t>(pValue, pValue + len));
+        }
+        else if (pValue[0]== ACK_TYPE)
+        {
+            sLog(BLE_TAG, "Transmiting ACK...");
+            outgoingQueue.insert(outgoingQueue.begin(), vector<uint8_t>(pValue, pValue + len));
+        }
+    }
+}
+void notifyBLE()
+{
+    vector<uint8_t> buffer = ingoingQueue.front();
+    notifyChar->setValue(buffer.data(), buffer.size());
+    notifyChar->notify();
+    ingoingQueue.erase(ingoingQueue.begin());
 }

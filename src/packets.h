@@ -1,8 +1,9 @@
+#pragma once
 #include "constants.h"
 
-struct Packet
+struct DataPacket
 {
-    uint8_t type;
+    uint8_t type = TEXT_TYPE;
     uint8_t source[4];
     uint8_t destination[4];
     uint8_t uuid[6];
@@ -12,18 +13,21 @@ struct Packet
     uint8_t payload[200];
 };
 
-struct Neighbor 
+struct DiscoveryPacket
 {
-    uint64_t id;
-    int8_t   rssi;
-    uint32_t lastSeen;
+    uint8_t type = DISCOVERY_TYPE;
+    uint8_t source[4];
+    uint8_t uuid[6];
+    uint8_t TTL;
+    uint8_t neighborsCount;
+    uint8_t neighbors[4*6];
 };
 
-extern Neighbor neighbors[];
-extern const int MAX_NEIGHBORS;
 
-std::vector<uint8_t> toRaw(Packet &packet);
-Packet fromRaw(uint8_t buffer[], int len);
+vector<uint8_t> toRaw(DataPacket &packet);
+vector<uint8_t> toRaw(DiscoveryPacket &packet);
+DataPacket dataFromRaw(uint8_t buffer[], int len);
+DiscoveryPacket discoveryFromRaw(uint8_t buffer[], int len);
 
 
 
