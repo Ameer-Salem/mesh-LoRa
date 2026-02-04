@@ -31,50 +31,33 @@ vector<uint8_t> toRaw(DiscoveryPacket &packet)
 
 DataPacket dataFromRaw(uint8_t buffer[], int len)
 {
-    DataPacket Datapacket;
-    memset((DataPacket *)&Datapacket, 0, sizeof(Datapacket));
+    DataPacket dataPacket{};
+    size_t offset = 0;
+    dataPacket.type = buffer[offset++];
+    dataPacket.TTL = buffer[offset++];
+    for (int i = 0; i < sizeof(dataPacket.source); i++)
+    {
+        dataPacket.source[i] = buffer[offset++];
+    }
+    dataPacket.destination = (uint32_t(buffer[offset++]) << 24) |
+                             (uint32_t(buffer[offset++]) << 16) |
+                             (uint32_t(buffer[offset++]) << 8) |
+                             (uint32_t(buffer[offset++]));
 
-    Datapacket.type = buffer[0];
-    for (int i = 0; i < sizeof(Datapacket.source); i++)
+    for (int i = 0; i < sizeof(dataPacket.uuid); i++)
     {
-        Datapacket.source[i] = buffer[sizeof(Datapacket.type) + i];
+        dataPacket.uuid[i] = buffer[offset++];
     }
-    for (int i = 0; i < sizeof(Datapacket.destination); i++)
-    {
-        Datapacket.destination[i] = buffer[sizeof(Datapacket.type) + sizeof(Datapacket.source) + i];
-    }
-    for (int i = 0; i < sizeof(Datapacket.uuid); i++)
-    {
-        Datapacket.uuid[i] = buffer[sizeof(Datapacket.type) + sizeof(Datapacket.source) + sizeof(Datapacket.destination) + i];
-    }
-    Datapacket.segmentIndex = buffer[sizeof(Datapacket.type) +
-                                     sizeof(Datapacket.source) +
-                                     sizeof(Datapacket.destination) +
-                                     sizeof(Datapacket.uuid)];
-    Datapacket.totalSegments = buffer[sizeof(Datapacket.type) +
-                                      sizeof(Datapacket.source) +
-                                      sizeof(Datapacket.destination) +
-                                      sizeof(Datapacket.uuid) +
-                                      sizeof(Datapacket.segmentIndex)];
-    Datapacket.length = buffer[sizeof(Datapacket.type) +
-                               sizeof(Datapacket.source) +
-                               sizeof(Datapacket.destination) +
-                               sizeof(Datapacket.uuid) +
-                               sizeof(Datapacket.segmentIndex) +
-                               sizeof(Datapacket.totalSegments)];
-    int safeLen = min(Datapacket.length, (uint8_t)sizeof(Datapacket.payload));
+    dataPacket.segmentIndex = buffer[offset++];
+    dataPacket.totalSegments = buffer[offset++];
+    dataPacket.length = buffer[offset++];
+    int safeLen = min(dataPacket.length, (uint8_t)sizeof(dataPacket.payload));
     for (int i = 0; i < safeLen; i++)
     {
-        Datapacket.payload[i] = buffer[sizeof(Datapacket.type) +
-                                       sizeof(Datapacket.source) +
-                                       sizeof(Datapacket.destination) +
-                                       sizeof(Datapacket.uuid) +
-                                       sizeof(Datapacket.segmentIndex) +
-                                       sizeof(Datapacket.totalSegments) +
-                                       sizeof(Datapacket.length) + i];
+        dataPacket.payload[i] = buffer[sizeof(offset++)];
     }
-    Datapacket.length = safeLen;
-    return Datapacket;
+    dataPacket.length = safeLen;
+    return dataPacket;
 }
 DiscoveryPacket discoveryFromRaw(uint8_t buffer[], int len)
 {
@@ -92,14 +75,14 @@ DiscoveryPacket discoveryFromRaw(uint8_t buffer[], int len)
     }
     packet.TTL = buffer[sizeof(packet.type) + sizeof(packet.source) + sizeof(packet.uuid)];
     packet.neighborsCount = buffer[sizeof(packet.type) + sizeof(packet.source) + sizeof(packet.uuid) + sizeof(packet.TTL)];
-    
+
     for (int i = 0; i < sizeof(packet.neighbors); i++)
     {
         packet.neighbors[i] = buffer[sizeof(packet.type) +
-                                   sizeof(packet.source) +
-                                   sizeof(packet.uuid) +
-                                   sizeof(packet.TTL) +
-                                   sizeof(packet.neighborsCount) + i];
+                                     sizeof(packet.source) +
+                                     sizeof(packet.uuid) +
+                                     sizeof(packet.TTL) +
+                                     sizeof(packet.neighborsCount) + i];
     }
     return packet;
 }

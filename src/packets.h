@@ -4,8 +4,9 @@
 struct DataPacket
 {
     uint8_t type = TEXT_TYPE;
+    uint8_t TTL;
     uint8_t source[4];
-    uint8_t destination[4];
+    uint32_t destination;
     uint8_t uuid[6];
     uint8_t segmentIndex;
     uint8_t totalSegments;

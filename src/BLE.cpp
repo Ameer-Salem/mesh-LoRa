@@ -62,9 +62,11 @@ void RXCallback::onWrite(BLECharacteristic *characteristic)
 {
     uint8_t *pValue = characteristic->getData();
     int len = characteristic->getLength();
+    vector<uint8_t> buffer(pValue, pValue + len);
 
-    if (len > 0)
+    if (len > 1)
     {
+        buffer.insert(buffer.begin() + 1, TTL);
         if (pValue[0] == NEIGHBORS_TYPE)
         {
             sLog(BLE_TAG, "Transmiting neighbors packet...");
@@ -74,12 +76,12 @@ void RXCallback::onWrite(BLECharacteristic *characteristic)
         else if (pValue[0] == TEXT_TYPE)
         {
             sLog(BLE_TAG, "Transmiting data packet...");
-            outgoingQueue.push_back(vector<uint8_t>(pValue, pValue + len));
+            outgoingQueue.push_back(buffer);
         }
-        else if (pValue[0]== ACK_TYPE)
+        else if (pValue[0] == ACK_TYPE)
         {
             sLog(BLE_TAG, "Transmiting ACK...");
-            outgoingQueue.insert(outgoingQueue.begin(), vector<uint8_t>(pValue, pValue + len));
+            outgoingQueue.insert(outgoingQueue.begin(), buffer);
         }
     }
 }

@@ -98,40 +98,48 @@ void receive()
     buffer.resize(len);
 
     state = lora.readData(buffer.data(), len);
-    if (!state)
+    if (!state && len > 0)
     {
-        if (buffer[0] == ACK_TYPE)
-        {
-            sLog(LORA_TAG, "LoRa received ack packet...");
-            return;
-        }
-        else if (buffer[0] == DISCOVERY_TYPE)
+        if (buffer[0] == DISCOVERY_TYPE)
         {
             sLog(LORA_TAG, "LoRa received discovery packet...");
             discoveryCheck(buffer);
             ingoingQueue.insert(ingoingQueue.begin(), buffer);
             return;
-        }
-        else if (buffer[0] == TEXT_TYPE)
+        } 
+        DataPacket packet = dataFromRaw(buffer.data(), buffer.size());
+        if (packet.TTL > 0)
         {
-            sLog(LORA_TAG, "LoRa received data packet...");
-            ingoingQueue.push_back(buffer);
-            return;
+            buffer[1]--;
+            outgoingQueue.insert(outgoingQueue.begin(), buffer);
         }
-        logBytes(LORA_TAG, "Type", &buffer[0], 1);
+        buffer.erase(buffer.begin() + 1);
+        if (packet.destination == NODE_ID)
+        {
+            if (packet.type == ACK_TYPE)
+            {
+                sLog(LORA_TAG, "LoRa received ack packet...");
+                ingoingQueue.insert(ingoingQueue.begin(), buffer);
+                return;
+            }
+            else if (packet.type == TEXT_TYPE)
+            {
+                sLog(LORA_TAG, "LoRa received data packet...");
+                ingoingQueue.push_back(buffer);
+                return;
+            }
+            logBytes(LORA_TAG, "Type", &buffer[0], 1);
+        }
     }
     else
     {
-        sLog(LORA_TAG, "LoRa reception failed!");
-        while (1)
-            ;
+        return;
     }
 }
 
 void discoveryCheck(vector<uint8_t> buffer)
 {
-    DiscoveryPacket packet;
-    memset((DiscoveryPacket *)&packet, 0, sizeof(packet));
+    DiscoveryPacket packet{};  
     packet = discoveryFromRaw(buffer.data(), buffer.size());
 
     Neighbor neighbor;
@@ -141,7 +149,7 @@ void discoveryCheck(vector<uint8_t> buffer)
         sLog(LORA_TAG, "Received discovery packet from self!");
         return;
     }
-    if (packet.TTL != 0)
+    if (packet.TTL > 0)
     {
         logBytes(LORA_TAG, "resending discovery packet", (uint8_t *)&packet, sizeof(packet));
         sendDiscoveryPacket(packet, true);
@@ -207,7 +215,7 @@ vector<uint8_t> serializeNeighbors(const vector<Neighbor> &neighbors)
     // COUNT (max 255 neighbors)
     out.push_back(NEIGHBORS_TYPE);
     out.push_back(neighbors.size());
-    
+
     for (const auto &n : neighbors)
     {
         // id (uint32, big endian)
