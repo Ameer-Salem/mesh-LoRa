@@ -20,10 +20,12 @@ vector<uint8_t> toRaw(DiscoveryPacket &packet)
     vector<uint8_t> buffer;
 
     buffer.push_back(packet.type);
-    buffer.insert(buffer.end(), packet.source, packet.source + sizeof(packet.source));
-    buffer.insert(buffer.end(), packet.uuid, packet.uuid + sizeof(packet.uuid));
     buffer.push_back(packet.TTL);
     buffer.push_back(packet.neighborsCount);
+    buffer.insert(buffer.end(), packet.source, packet.source + sizeof(packet.source));
+    buffer.insert(buffer.end(), packet.uuid, packet.uuid + sizeof(packet.uuid));
+    buffer.insert(buffer.end(), packet.latitude, packet.latitude + sizeof(packet.latitude));
+    buffer.insert(buffer.end(), packet.longitude, packet.longitude + sizeof(packet.longitude));
     buffer.insert(buffer.end(), packet.neighbors, packet.neighbors + sizeof(packet.neighbors));
 
     return buffer;
@@ -33,12 +35,15 @@ DataPacket dataFromRaw(uint8_t buffer[], int len)
 {
     DataPacket dataPacket{};
     size_t offset = 0;
+
     dataPacket.type = buffer[offset++];
     dataPacket.TTL = buffer[offset++];
-    for (int i = 0; i < sizeof(dataPacket.source); i++)
-    {
-        dataPacket.source[i] = buffer[offset++];
-    }
+
+    dataPacket.source = (uint32_t(buffer[offset++]) << 24) |
+                             (uint32_t(buffer[offset++]) << 16) |
+                             (uint32_t(buffer[offset++]) << 8) |
+                             (uint32_t(buffer[offset++]));
+
     dataPacket.destination = (uint32_t(buffer[offset++]) << 24) |
                              (uint32_t(buffer[offset++]) << 16) |
                              (uint32_t(buffer[offset++]) << 8) |
@@ -48,6 +53,7 @@ DataPacket dataFromRaw(uint8_t buffer[], int len)
     {
         dataPacket.uuid[i] = buffer[offset++];
     }
+    
     dataPacket.segmentIndex = buffer[offset++];
     dataPacket.totalSegments = buffer[offset++];
     dataPacket.length = buffer[offset++];
@@ -62,27 +68,33 @@ DataPacket dataFromRaw(uint8_t buffer[], int len)
 DiscoveryPacket discoveryFromRaw(uint8_t buffer[], int len)
 {
     DiscoveryPacket packet;
-    memset((DiscoveryPacket *)&packet, 0, sizeof(packet));
+    size_t offset = 0;
+    packet.type = buffer[offset++];
+    packet.TTL = buffer[offset++];
+    packet.neighborsCount = buffer[offset++];
 
-    packet.type = buffer[0];
     for (int i = 0; i < sizeof(packet.source); i++)
     {
-        packet.source[i] = buffer[sizeof(packet.type) + i];
+        packet.source[i] = buffer[offset++];
     }
+
     for (int i = 0; i < sizeof(packet.uuid); i++)
     {
-        packet.uuid[i] = buffer[sizeof(packet.type) + sizeof(packet.source) + i];
+        packet.uuid[i] = buffer[offset++];
     }
-    packet.TTL = buffer[sizeof(packet.type) + sizeof(packet.source) + sizeof(packet.uuid)];
-    packet.neighborsCount = buffer[sizeof(packet.type) + sizeof(packet.source) + sizeof(packet.uuid) + sizeof(packet.TTL)];
 
-    for (int i = 0; i < sizeof(packet.neighbors); i++)
+    for (int i = 0; i < sizeof(packet.latitude); i++)
     {
-        packet.neighbors[i] = buffer[sizeof(packet.type) +
-                                     sizeof(packet.source) +
-                                     sizeof(packet.uuid) +
-                                     sizeof(packet.TTL) +
-                                     sizeof(packet.neighborsCount) + i];
+        packet.latitude[i] = buffer[offset++];
+    }
+    for (int i = 0; i < sizeof(packet.longitude); i++)
+    {
+        packet.longitude[i] = buffer[offset++];
+    }
+
+    for (int i = 0; i < packet.neighborsCount * 4; i++)
+    {
+        packet.neighbors[i] = buffer[offset++];
     }
     return packet;
 }

@@ -9,12 +9,19 @@ struct Neighbor
     uint32_t id;
     int8_t   rssi;
     uint32_t lastSeen;
+    float latitude;
+    float longitude;
 };
+
+
 
 extern vector<Neighbor> neighbors;
 
 extern SX1262 lora;
 extern int state;
+
+extern float latitude;
+extern float longitude;
 
 extern bool operationDone;
 extern bool transmitFlag;

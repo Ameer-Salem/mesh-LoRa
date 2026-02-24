@@ -5,7 +5,7 @@ struct DataPacket
 {
     uint8_t type = TEXT_TYPE;
     uint8_t TTL;
-    uint8_t source[4];
+    uint32_t source;
     uint32_t destination;
     uint8_t uuid[6];
     uint8_t segmentIndex;
@@ -17,10 +17,12 @@ struct DataPacket
 struct DiscoveryPacket
 {
     uint8_t type = DISCOVERY_TYPE;
-    uint8_t source[4];
-    uint8_t uuid[6];
     uint8_t TTL;
     uint8_t neighborsCount;
+    uint8_t source[4];
+    uint8_t uuid[6];
+    uint8_t latitude[4];
+    uint8_t longitude[4];
     uint8_t neighbors[4*6];
 };
 

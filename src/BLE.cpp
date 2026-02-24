@@ -55,6 +55,8 @@ void MyServerCallbacks::onConnect(BLEServer *pServer)
 void MyServerCallbacks::onDisconnect(BLEServer *pServer)
 {
     sLog(BLE_TAG, "Client disconnected");
+    latitude = 0;
+    longitude = 0;
     advertising->start();
 };
 
@@ -66,20 +68,25 @@ void RXCallback::onWrite(BLECharacteristic *characteristic)
 
     if (len > 1)
     {
-        buffer.insert(buffer.begin() + 1, TTL);
         if (pValue[0] == NEIGHBORS_TYPE)
         {
             sLog(BLE_TAG, "Transmiting neighbors packet...");
-
             ingoingQueue.push_back(serializeNeighbors(neighbors));
+        }
+        else if (pValue[0] == LOCATION_TYPE)
+        {
+            string text = characteristic->getValue();
+            sscanf(text.c_str(), "%*d,%f,%f", &latitude, &longitude);
         }
         else if (pValue[0] == TEXT_TYPE)
         {
+            buffer.insert(buffer.begin() + 1, TTL);
             sLog(BLE_TAG, "Transmiting data packet...");
             outgoingQueue.push_back(buffer);
         }
         else if (pValue[0] == ACK_TYPE)
         {
+            buffer.insert(buffer.begin() + 1, TTL);
             sLog(BLE_TAG, "Transmiting ACK...");
             outgoingQueue.insert(outgoingQueue.begin(), buffer);
         }

@@ -8,6 +8,9 @@ int state;
 bool operationDone = false;
 bool transmitFlag = false;
 
+float latitude = 0;
+float longitude = 0;
+
 vector<vector<uint8_t>> outgoingQueue;
 vector<vector<uint8_t>> ingoingQueue;
 
@@ -49,7 +52,6 @@ void sendPacket()
     {
         outgoingQueue.erase(outgoingQueue.begin());
         transmitFlag = true;
-        sLog(LORA_TAG, "Packet sent successfully!");
     }
     else
     {
@@ -60,12 +62,9 @@ void sendPacket()
 }
 void sendDiscoveryPacket(DiscoveryPacket packet, bool reSend)
 {
-
     sLog(LORA_TAG, "Sending discovery packet...");
     if (!reSend)
     {
-        memset((DiscoveryPacket *)&packet, 0, sizeof(packet));
-
         packet.type = DISCOVERY_TYPE;
         packet.source[0] = (NODE_ID >> 24) & 0xFF;
         packet.source[1] = (NODE_ID >> 16) & 0xFF;
@@ -80,6 +79,9 @@ void sendDiscoveryPacket(DiscoveryPacket packet, bool reSend)
             packet.neighbors[i * 4 + 2] = (neighbors[i].id >> 8) & 0xFF;
             packet.neighbors[i * 4 + 3] = neighbors[i].id & 0xFF;
         }
+        memcpy(packet.latitude, &latitude, 4);
+        memcpy(packet.longitude, &longitude, 4);
+
         vector<uint8_t> buffer = toRaw(packet);
         outgoingQueue.push_back(buffer);
     }
@@ -102,11 +104,9 @@ void receive()
     {
         if (buffer[0] == DISCOVERY_TYPE)
         {
-            sLog(LORA_TAG, "LoRa received discovery packet...");
             discoveryCheck(buffer);
-            ingoingQueue.insert(ingoingQueue.begin(), buffer);
             return;
-        } 
+        }
         DataPacket packet = dataFromRaw(buffer.data(), buffer.size());
         if (packet.TTL > 0)
         {
@@ -118,93 +118,101 @@ void receive()
         {
             if (packet.type == ACK_TYPE)
             {
-                sLog(LORA_TAG, "LoRa received ack packet...");
+                sLog(LORA_TAG, "ACK packet received! ");
                 ingoingQueue.insert(ingoingQueue.begin(), buffer);
                 return;
             }
             else if (packet.type == TEXT_TYPE)
             {
-                sLog(LORA_TAG, "LoRa received data packet...");
+                sLog(LORA_TAG, "DATA packet received...");
                 ingoingQueue.push_back(buffer);
                 return;
             }
-            logBytes(LORA_TAG, "Type", &buffer[0], 1);
         }
-    }
-    else
-    {
-        return;
     }
 }
 
 void discoveryCheck(vector<uint8_t> buffer)
 {
-    DiscoveryPacket packet{};  
-    packet = discoveryFromRaw(buffer.data(), buffer.size());
+    DiscoveryPacket packet = discoveryFromRaw(buffer.data(), buffer.size());
 
     Neighbor neighbor;
     neighbor.id = ((packet.source[0] << 24) | (packet.source[1] << 16) | (packet.source[2] << 8) | packet.source[3]);
     if (neighbor.id == NODE_ID)
-    {
-        sLog(LORA_TAG, "Received discovery packet from self!");
         return;
-    }
     if (packet.TTL > 0)
-    {
-        logBytes(LORA_TAG, "resending discovery packet", (uint8_t *)&packet, sizeof(packet));
         sendDiscoveryPacket(packet, true);
-    }
 
+    // ---------- HANDLE SOURCE NEIGHBOR ----------
+    bool sourceFound = false;
     for (auto &i : neighbors)
     {
         if (i.id == neighbor.id)
         {
-            sLog(LORA_TAG, "Received discovery packet from known neighbor!");
             i.rssi = lora.getRSSI();
             i.lastSeen = millis();
-            return;
+
+            memcpy(&i.latitude, packet.latitude, 4);
+            memcpy(&i.longitude, packet.longitude, 4);
+
+            sourceFound = true;
+            break;
         }
     }
-    neighbor.rssi = lora.getRSSI();
-    neighbor.lastSeen = millis();
-    neighbors.push_back(neighbor);
+    if (!sourceFound)
+    {
+        neighbor.rssi = lora.getRSSI();
+        neighbor.lastSeen = millis();
 
+        memcpy(&neighbor.latitude, packet.latitude, 4);
+        memcpy(&neighbor.longitude, packet.longitude, 4);
+
+        neighbors.push_back(neighbor);
+    }
+    // ---------- HANDLE RELAYED NEIGHBORS ----------
     uint8_t neighborCount = packet.neighborsCount;
     for (int i = 0; i < neighborCount; i++)
     {
         uint32_t neighborId = ((packet.neighbors[i * 4] << 24) | (packet.neighbors[i * 4 + 1] << 16) | (packet.neighbors[i * 4 + 2] << 8) | packet.neighbors[i * 4 + 3]);
-
+        if (neighborId == NODE_ID)
+            continue;
         bool found = false;
+
         for (auto &n : neighbors)
         {
             if (n.id == neighborId)
             {
                 n.lastSeen = millis();
+                n.rssi = lora.getRSSI();
+                memcpy(&n.latitude, packet.latitude, 4);
+                memcpy(&n.longitude, packet.longitude, 4);
                 found = true;
                 break;
             }
         }
-
         if (!found)
         {
-            sLog(LORA_TAG, "adding new neighbor from discovery packet neighbors...");
             Neighbor neighbor;
             neighbor.id = neighborId;
             neighbor.rssi = lora.getRSSI();
             neighbor.lastSeen = millis();
+            memcpy(&neighbor.latitude, packet.latitude, 4);
+            memcpy(&neighbor.longitude, packet.longitude, 4);
             neighbors.push_back(neighbor);
-        }
-        else
-        {
-            sLog(LORA_TAG, "Neighbor from discovery packet neighbors already exists!");
         }
     }
 
+    // ---------- ALWAYS LOG NEIGHBORS ----------
+    sLog(LORA_TAG, "Neighbors:");
     for (const auto &n : neighbors)
     {
-        sLog(LORA_TAG, "Neighbors : ");
-        Serial.printf("ID=%u RSSI=%d lastSeen=%lu\n",
-                      n.id, n.rssi, n.lastSeen);
+        Serial.printf(
+            "ID=%u RSSI=%d lastSeen=%lu latitude=%f longitude=%f\n",
+            n.id,
+            n.rssi,
+            n.lastSeen,
+            n.latitude,
+            n.longitude);
     }
 }
 
