@@ -26,7 +26,6 @@ void loop()
 {
     if (operationDone)
     {
-        sLog(LORA_TAG, "Operation done!");
         operationDone = false;
         if (transmitFlag)
         {

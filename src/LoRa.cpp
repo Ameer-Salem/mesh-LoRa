@@ -17,11 +17,7 @@ vector<vector<uint8_t>> ingoingQueue;
 void loraBegin(float freq, float bw, int sf, int cr)
 {
     state = lora.begin(freq, bw, sf, cr);
-    if (!state)
-    {
-        sLog(LORA_TAG, "LoRa initialized successfully!");
-    }
-    else
+    if (state)
     {
         sLog(LORA_TAG, "LoRa initialization failed!");
         while (1)
@@ -31,11 +27,7 @@ void loraBegin(float freq, float bw, int sf, int cr)
 void startListening()
 {
     state = lora.startReceive();
-    if (!state)
-    {
-        sLog(LORA_TAG, "LoRa is listening...");
-    }
-    else
+    if (state)
     {
         sLog(LORA_TAG, "LoRa listening failed!");
         while (1)
@@ -66,13 +58,16 @@ void sendDiscoveryPacket(DiscoveryPacket packet, bool reSend)
     if (!reSend)
     {
         packet.type = DISCOVERY_TYPE;
+        packet.TTL = 1;
         packet.source[0] = (NODE_ID >> 24) & 0xFF;
         packet.source[1] = (NODE_ID >> 16) & 0xFF;
         packet.source[2] = (NODE_ID >> 8) & 0xFF;
         packet.source[3] = NODE_ID & 0xFF;
-        packet.TTL = 1;
-        packet.neighborsCount = neighbors.size();
-        for (int i = 0; i < neighbors.size(); i++)
+        size_t maxNeighbors = sizeof(packet.neighbors) / 4;
+        size_t count = min(neighbors.size(), maxNeighbors);
+        packet.neighborsCount = count;
+
+        for (int i = 0; i < count; i++)
         {
             packet.neighbors[i * 4] = (neighbors[i].id >> 24) & 0xFF;
             packet.neighbors[i * 4 + 1] = (neighbors[i].id >> 16) & 0xFF;
@@ -108,6 +103,7 @@ void receive()
             return;
         }
         DataPacket packet = dataFromRaw(buffer.data(), buffer.size());
+        logBytes(LORA_TAG, "Received", buffer.data(), buffer.size());
         if (packet.TTL > 0)
         {
             buffer[1]--;
@@ -135,8 +131,8 @@ void receive()
 void discoveryCheck(vector<uint8_t> buffer)
 {
     DiscoveryPacket packet = discoveryFromRaw(buffer.data(), buffer.size());
-
     Neighbor neighbor;
+
     neighbor.id = ((packet.source[0] << 24) | (packet.source[1] << 16) | (packet.source[2] << 8) | packet.source[3]);
     if (neighbor.id == NODE_ID)
         return;
@@ -240,6 +236,14 @@ vector<uint8_t> serializeNeighbors(const vector<Neighbor> &neighbors)
         out.push_back((n.lastSeen >> 16) & 0xFF);
         out.push_back((n.lastSeen >> 8) & 0xFF);
         out.push_back(n.lastSeen & 0xFF);
+
+        float lat = n.latitude;
+        uint8_t *p = (uint8_t *)&lat;
+        out.insert(out.end(), p, p + 4);
+
+        float lon = n.longitude;
+        p = (uint8_t *)&lon;
+        out.insert(out.end(), p, p + 4);
     }
 
     return out;

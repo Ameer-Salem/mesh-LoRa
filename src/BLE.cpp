@@ -66,29 +66,33 @@ void RXCallback::onWrite(BLECharacteristic *characteristic)
     int len = characteristic->getLength();
     vector<uint8_t> buffer(pValue, pValue + len);
 
-    if (len > 1)
+    if (len > 0)
     {
-        if (pValue[0] == NEIGHBORS_TYPE)
+        logBytes(BLE_TAG, "Received", buffer.data(), buffer.size());
+        switch (buffer[0])
         {
-            sLog(BLE_TAG, "Transmiting neighbors packet...");
+        case NEIGHBORS_TYPE:
+            sLog(BLE_TAG, "Transmitting neighbors packet...");
             ingoingQueue.push_back(serializeNeighbors(neighbors));
-        }
-        else if (pValue[0] == LOCATION_TYPE)
+            break;
+        case LOCATION_TYPE:
         {
             string text = characteristic->getValue();
             sscanf(text.c_str(), "%*d,%f,%f", &latitude, &longitude);
+            break;
         }
-        else if (pValue[0] == TEXT_TYPE)
-        {
+        case TEXT_TYPE:
             buffer.insert(buffer.begin() + 1, TTL);
-            sLog(BLE_TAG, "Transmiting data packet...");
+            sLog(BLE_TAG, "Transmitting data packet...");
             outgoingQueue.push_back(buffer);
-        }
-        else if (pValue[0] == ACK_TYPE)
-        {
+            break;
+        case ACK_TYPE:
             buffer.insert(buffer.begin() + 1, TTL);
-            sLog(BLE_TAG, "Transmiting ACK...");
+            sLog(BLE_TAG, "Transmitting ACK...");
             outgoingQueue.insert(outgoingQueue.begin(), buffer);
+            break;
+        default:
+            break;
         }
     }
 }
