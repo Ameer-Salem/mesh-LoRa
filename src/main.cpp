@@ -30,17 +30,14 @@ void loop()
         if (transmitFlag)
         {
             startListening();
-            sLog(LORA_TAG, "Previous operation was transmission");
             transmitFlag = false;
-            delay(100);
         }
         else
         {
-            sLog(LORA_TAG, "Previous operation was reception");
             receive();
         }
     }
-    else if (!outgoingQueue.empty())
+    if (!outgoingQueue.empty())
     {
         sendPacket();
     }
@@ -50,7 +47,7 @@ void loop()
     }
 
     unsigned long now = millis();
-    if (now - lastDiscoverySend >= 100e3)
+    if (now - lastDiscoverySend >= 30e3)
     {
         sendDiscoveryPacket();
         lastDiscoverySend = now;

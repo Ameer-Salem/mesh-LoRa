@@ -68,11 +68,9 @@ void RXCallback::onWrite(BLECharacteristic *characteristic)
 
     if (len > 0)
     {
-        logBytes(BLE_TAG, "Received", buffer.data(), buffer.size());
         switch (buffer[0])
         {
         case NEIGHBORS_TYPE:
-            sLog(BLE_TAG, "Transmitting neighbors packet...");
             ingoingQueue.push_back(serializeNeighbors(neighbors));
             break;
         case LOCATION_TYPE:
@@ -88,7 +86,7 @@ void RXCallback::onWrite(BLECharacteristic *characteristic)
             break;
         case ACK_TYPE:
             buffer.insert(buffer.begin() + 1, TTL);
-            sLog(BLE_TAG, "Transmitting ACK...");
+            sLog(BLE_TAG, "Transmitting ACK packet...");
             outgoingQueue.insert(outgoingQueue.begin(), buffer);
             break;
         default:

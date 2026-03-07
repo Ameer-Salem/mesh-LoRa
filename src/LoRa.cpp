@@ -37,13 +37,15 @@ void startListening()
 
 void sendPacket()
 {
+    if (lora.getIrqFlags())
+        return;
     vector<uint8_t> buffer = outgoingQueue.front();
-
     state = lora.startTransmit(buffer.data(), buffer.size());
     if (!state)
     {
         outgoingQueue.erase(outgoingQueue.begin());
         transmitFlag = true;
+        delay(100);
     }
     else
     {
@@ -54,7 +56,6 @@ void sendPacket()
 }
 void sendDiscoveryPacket(DiscoveryPacket packet, bool reSend)
 {
-    sLog(LORA_TAG, "Sending discovery packet...");
     if (!reSend)
     {
         packet.type = DISCOVERY_TYPE;
@@ -103,7 +104,6 @@ void receive()
             return;
         }
         DataPacket packet = dataFromRaw(buffer.data(), buffer.size());
-        logBytes(LORA_TAG, "Received", buffer.data(), buffer.size());
         if (packet.TTL > 0)
         {
             buffer[1]--;

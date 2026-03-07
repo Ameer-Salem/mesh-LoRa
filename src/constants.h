@@ -15,11 +15,11 @@ static const String LORA_TAG = "[SX1262] ";
 extern uint32_t NODE_ID;
 
 // ===== Protocol Constants =====
-static constexpr int ACK_TYPE = 0x00;
 static constexpr int DISCOVERY_TYPE = 0x01;
 static constexpr int TEXT_TYPE = 0x02;
 static constexpr int NEIGHBORS_TYPE = 0x03;
 static constexpr int LOCATION_TYPE = 0x04;
+static constexpr int ACK_TYPE = 0x05;
 
 static constexpr int TTL = 0x01;
 
