@@ -37,7 +37,7 @@ void startListening()
 
 void sendPacket()
 {
-    if (lora.getIrqFlags())
+    if (lora.getIrqFlags() || transmitFlag)
         return;
     vector<uint8_t> buffer = outgoingQueue.front();
     state = lora.startTransmit(buffer.data(), buffer.size());
@@ -45,7 +45,6 @@ void sendPacket()
     {
         outgoingQueue.erase(outgoingQueue.begin());
         transmitFlag = true;
-        delay(100);
     }
     else
     {

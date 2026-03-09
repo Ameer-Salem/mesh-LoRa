@@ -11,11 +11,11 @@ void setFlag(void)
 
 void setup()
 {
-
+    randomSeed(analogRead(1));
     Serial.begin(115200);
 
     bleSetup();
-    loraBegin(433.0, 125.0, 9, 6);
+    loraBegin(433.0, 125.0, 8, 6);
     lora.setDio1Action(setFlag);
     startListening();
 
@@ -31,6 +31,7 @@ void loop()
         {
             startListening();
             transmitFlag = false;
+            delay(random(250, 750));
         }
         else
         {
