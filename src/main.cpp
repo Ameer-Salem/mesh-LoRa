@@ -53,4 +53,12 @@ void loop()
         sendDiscoveryPacket();
         lastDiscoverySend = now;
     }
+
+    for (int i = neighbors.size() - 1; i >= 0; i--)
+    {
+        if (now - neighbors[i].lastSeen >= 30e3) // 30 seconds
+        {
+            neighbors.erase(neighbors.begin() + i);
+        }
+    }
 }

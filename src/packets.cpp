@@ -1,5 +1,6 @@
 #include "packets.h"
 
+unsigned long long lastseen = millis();
 vector<uint8_t> toRaw(DataPacket &Datapacket)
 {
     vector<uint8_t> buffer;

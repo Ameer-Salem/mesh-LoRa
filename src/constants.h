@@ -13,6 +13,7 @@ static const String LORA_TAG = "[SX1262] ";
 
 // ===== Node Info =====
 extern uint32_t NODE_ID;
+extern unsigned long long lastseen;
 
 // ===== Protocol Constants =====
 static constexpr int DISCOVERY_TYPE = 0x01;

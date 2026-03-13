@@ -55,8 +55,6 @@ void MyServerCallbacks::onConnect(BLEServer *pServer)
 void MyServerCallbacks::onDisconnect(BLEServer *pServer)
 {
     sLog(BLE_TAG, "Client disconnected");
-    latitude = 0;
-    longitude = 0;
     advertising->start();
 };
 
@@ -75,8 +73,15 @@ void RXCallback::onWrite(BLECharacteristic *characteristic)
             break;
         case LOCATION_TYPE:
         {
-            string text = characteristic->getValue();
-            sscanf(text.c_str(), "%*d,%f,%f", &latitude, &longitude);
+            int32_t latInt;
+            int32_t lonInt;
+
+            memcpy(&latInt, &buffer[1], 4);
+            memcpy(&lonInt, &buffer[5], 4);
+
+            latitude = latInt / 1000000.0f;
+            longitude = lonInt / 1000000.0f;
+            sLog(BLE_TAG, "Location: " + String(latitude, 6) + ", " + String(longitude, 6));
             break;
         }
         case TEXT_TYPE:

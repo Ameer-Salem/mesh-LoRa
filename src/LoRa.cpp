@@ -229,12 +229,12 @@ vector<uint8_t> serializeNeighbors(const vector<Neighbor> &neighbors)
 
         // rssi (int8)
         out.push_back((uint8_t)n.rssi);
-
+        uint32_t lastSeen = millis() - n.lastSeen;
         // lastSeen (uint32)
-        out.push_back((n.lastSeen >> 24) & 0xFF);
-        out.push_back((n.lastSeen >> 16) & 0xFF);
-        out.push_back((n.lastSeen >> 8) & 0xFF);
-        out.push_back(n.lastSeen & 0xFF);
+        out.push_back((lastSeen >> 24) & 0xFF);
+        out.push_back((lastSeen >> 16) & 0xFF);
+        out.push_back((lastSeen >> 8) & 0xFF);
+        out.push_back(lastSeen & 0xFF);
 
         float lat = n.latitude;
         uint8_t *p = (uint8_t *)&lat;
