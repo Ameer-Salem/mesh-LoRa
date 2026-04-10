@@ -17,6 +17,7 @@ void setup()
     bleSetup();
     loraBegin(433.0, 125.0, 8, 6);
     lora.setDio1Action(setFlag);
+    lora.setOutputPower(22);
     startListening();
 
     sendDiscoveryPacket();
