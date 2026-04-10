@@ -32,7 +32,7 @@ void loop()
         {
             startListening();
             transmitFlag = false;
-            delay(random(250, 750));
+            delay(random(1000, 1750));
         }
         else
         {
