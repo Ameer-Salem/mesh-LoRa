@@ -24,7 +24,6 @@ vector<uint8_t> toRaw(DiscoveryPacket &packet)
     buffer.push_back(packet.TTL);
     buffer.push_back(packet.neighborsCount);
     buffer.insert(buffer.end(), packet.source, packet.source + sizeof(packet.source));
-    buffer.insert(buffer.end(), packet.uuid, packet.uuid + sizeof(packet.uuid));
     buffer.insert(buffer.end(), packet.latitude, packet.latitude + sizeof(packet.latitude));
     buffer.insert(buffer.end(), packet.longitude, packet.longitude + sizeof(packet.longitude));
     buffer.insert(buffer.end(), packet.neighbors, packet.neighbors + sizeof(packet.neighbors));
@@ -77,11 +76,6 @@ DiscoveryPacket discoveryFromRaw(uint8_t buffer[], int len)
     for (int i = 0; i < sizeof(packet.source); i++)
     {
         packet.source[i] = buffer[offset++];
-    }
-
-    for (int i = 0; i < sizeof(packet.uuid); i++)
-    {
-        packet.uuid[i] = buffer[offset++];
     }
 
     for (int i = 0; i < sizeof(packet.latitude); i++)

@@ -20,7 +20,6 @@ struct DiscoveryPacket
     uint8_t TTL;
     uint8_t neighborsCount;
     uint8_t source[4];
-    uint8_t uuid[6];
     uint8_t latitude[4];
     uint8_t longitude[4];
     uint8_t neighbors[4*6];
